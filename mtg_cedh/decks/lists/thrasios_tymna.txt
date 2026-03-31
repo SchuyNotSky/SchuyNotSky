@@ -1,0 +1,87 @@
+// Thrasios, Triton Hero + Tymna the Weaver
+// 4-color (WUBG) Oracle+Consultation
+// Paste your full 99-card list below. One card per line: "1 Card Name"
+// Commander section is auto-detected or use the header below.
+
+Commander (2)
+1 Thrasios, Triton Hero
+1 Tymna the Weaver
+
+Deck (99)
+// --- Fast Mana ---
+1 Sol Ring
+1 Mana Crypt
+1 Mana Vault
+1 Chrome Mox
+1 Mox Diamond
+1 Lotus Petal
+1 Jeweled Lotus
+1 Dark Ritual
+1 Cabal Ritual
+// --- Win Conditions ---
+1 Thassa's Oracle
+1 Demonic Consultation
+1 Tainted Pact
+// --- Tutors ---
+1 Demonic Tutor
+1 Vampiric Tutor
+1 Imperial Seal
+1 Mystical Tutor
+1 Enlightened Tutor
+1 Lim-Dul's Vault
+// --- Counterspells ---
+1 Force of Will
+1 Force of Negation
+1 Counterspell
+1 Fierce Guardianship
+1 Pact of Negation
+1 Mental Misstep
+1 Flusterstorm
+1 Swan Song
+1 Dovin's Veto
+// --- Card Draw ---
+1 Rhystic Study
+1 Mystic Remora
+1 Ad Nauseam
+1 Necropotence
+1 Brainstorm
+1 Ponder
+1 Preordain
+1 Gitaxian Probe
+1 Night's Whisper
+// --- Removal ---
+1 Swords to Plowshares
+1 Path to Exile
+1 Chain of Vapor
+1 Cyclonic Rift
+1 Abrupt Decay
+1 Assassin's Trophy
+1 Nature's Claim
+// --- Protection ---
+1 Veil of Summer
+1 Silence
+1 Orim's Chant
+// --- Lands ---
+1 Command Tower
+1 Ancient Tomb
+1 Exotic Orchard
+1 Gemstone Caverns
+1 Polluted Delta
+1 Flooded Strand
+1 Bloodstained Mire
+1 Windswept Heath
+1 Misty Rainforest
+1 Verdant Catacombs
+1 Underground Sea
+1 Tundra
+1 Bayou
+1 Savannah
+1 Tropical Island
+1 Scrubland
+1 Watery Grave
+1 Hallowed Fountain
+1 Breeding Pool
+1 Temple Garden
+1 Godless Shrine
+1 Overgrown Tomb
+// Add remaining 27+ cards here

@@ -1,0 +1,63 @@
+// Najeela, the Blade-Blossom
+// 5-color Warriors — Infinite Combat Win
+// Paste your full list below.
+
+Commander (1)
+1 Najeela, the Blade-Blossom
+
+Deck (99)
+// --- Fast Mana ---
+1 Sol Ring
+1 Mana Crypt
+1 Chrome Mox
+1 Mox Diamond
+1 Lotus Petal
+1 Jeweled Lotus
+1 Dark Ritual
+1 Cabal Ritual
+1 Elvish Spirit Guide
+1 Simian Spirit Guide
+// --- Warriors ---
+// Add your warrior package here
+// --- Counterspells ---
+1 Force of Will
+1 Force of Negation
+1 Fierce Guardianship
+1 Deflecting Swat
+1 Counterspell
+1 Mental Misstep
+1 Swan Song
+// --- Card Draw ---
+1 Rhystic Study
+1 Mystic Remora
+1 Brainstorm
+1 Ponder
+// --- Removal ---
+1 Swords to Plowshares
+1 Path to Exile
+1 Cyclonic Rift
+1 Nature's Claim
+// --- Lands ---
+1 Command Tower
+1 Ancient Tomb
+1 Exotic Orchard
+1 Polluted Delta
+1 Flooded Strand
+1 Bloodstained Mire
+1 Windswept Heath
+1 Misty Rainforest
+1 Wooded Foothills
+1 Scalding Tarn
+1 Arid Mesa
+1 Verdant Catacombs
+1 Underground Sea
+1 Volcanic Island
+1 Tundra
+1 Bayou
+1 Savannah
+1 Taiga
+1 Scrubland
+1 Tropical Island
+1 Badlands
+1 Plateau
+// Add remaining cards here
