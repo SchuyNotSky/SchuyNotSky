@@ -17,6 +17,9 @@ from .combat import (
     resolve_combat_damage, choose_attackers_ai, choose_blockers_ai
 )
 
+# Audit logger — optional, attached externally via game.audit = AuditLogger(...)
+_AUDIT_STUB = None  # placeholder; real logger set in setup_game()
+
 
 class Phase(Enum):
     BEGINNING = auto()
@@ -80,6 +83,9 @@ class GameState:
         # Win/loss tracking
         self.winner: Optional[Player] = None
         self.game_over = False
+
+        # Audit logger — attach with game.audit = AuditLogger(...)
+        self.audit = None  # type: Optional[Any]
 
         # Log
         self.game_log: List[str] = []
@@ -152,6 +158,10 @@ class GameState:
         zone = card.zone
         if zone == ZoneEnum.BATTLEFIELD:
             self.battlefield.remove(card)
+            if self.audit:
+                self.audit.permanent_dies(
+                    card.controller_id, owner.name, card.name
+                )
             # Trigger "leaves the battlefield" effects
             if card.data.ltb_effect:
                 card.data.ltb_effect(card, self)
@@ -202,6 +212,15 @@ class GameState:
         card.damage_taken = 0
         card.tapped = False
         self.battlefield.add(card)
+
+        if self.audit:
+            ctrl = self.get_player(card.controller_id)
+            self.audit.permanent_etb(
+                card.controller_id,
+                ctrl.name if ctrl else card.controller_id,
+                card.name,
+                [t.value for t in card.data.card_types],
+            )
 
         # Trigger ETB
         if card.data.etb_effect:
@@ -281,6 +300,14 @@ class GameState:
         )
         self.stack.push(item)
         self.log(f"{player.name} casts {card.name}.")
+        if self.audit:
+            self.audit.spell_cast(
+                player.player_id, player.name, card.name,
+                str(card.data.mana_cost), card.data.cmc,
+                [t.value for t in card.data.card_types],
+                targets=[getattr(t, 'name', str(t)) for t in (targets or [])],
+                x_value=x_value,
+            )
 
         # Storm trigger
         if Keyword.STORM in card.data.keywords:
@@ -322,6 +349,11 @@ class GameState:
         self.move_to_battlefield(card, player.player_id)
         card.summoning_sick = False  # lands don't have summoning sickness
         self.log(f"{player.name} plays {card.name}.")
+        if self.audit:
+            self.audit.land_played(
+                player.player_id, player.name, card.name,
+                [t.value for t in card.data.card_types],
+            )
         return True
 
     def activate_ability(self, card: Card, ability_index: int,
@@ -365,6 +397,19 @@ class GameState:
         if item is None:
             return
         self.log(f"Resolving: {item.name}")
+        if item.countered:
+            if self.audit and item.source:
+                self.audit.spell_countered(
+                    item.name, item.controller_id,
+                    countered_by="counter effect", countered_by_player="?"
+                )
+        else:
+            if self.audit and item.source and not item.is_ability:
+                ctrl = self.get_player(item.controller_id)
+                self.audit.spell_resolve(
+                    item.name, item.controller_id,
+                    ctrl.name if ctrl else item.controller_id
+                )
         item.resolve(self)
         apply_all_sbas(self)
 
@@ -404,6 +449,15 @@ class GameState:
         else:
             self.log_separator("GAME OVER — Draw/Timeout")
 
+        if self.audit:
+            self.audit.game_end(
+                winner_name=self.winner.name if self.winner else None,
+                winner_id=self.winner.player_id if self.winner else None,
+                win_condition=getattr(self, '_win_condition_name', "unknown"),
+                total_turns=self.turn_number,
+            )
+            self.audit.save(self)
+
     def _run_turn(self):
         self.turn_number += 1
         active = self.active_player()
@@ -411,6 +465,14 @@ class GameState:
         self._spells_this_turn = 0
         active.lands_played_this_turn = 0
         self.najeela_activated_this_combat = False
+
+        if self.audit:
+            life_totals = {p.player_id: p.life for p in self.players}
+            hand_sizes  = {p.player_id: len(p.hand) for p in self.players}
+            self.audit.turn_start(
+                self.turn_number, active.player_id, active.name,
+                life_totals, hand_sizes,
+            )
 
         for phase in PHASE_ORDER:
             self.phase = phase
@@ -458,8 +520,13 @@ class GameState:
 
     def _phase_draw(self, active: Player):
         if self.turn_number > 1 or active.player_id != self.players[0].player_id:
-            active.draw(1)
+            drawn = active.draw(1)
             self.log(f"{active.name} draws a card. Hand size: {len(active.hand)}")
+            if self.audit and drawn:
+                self.audit.card_drawn(
+                    active.player_id, active.name,
+                    drawn[0].name, source="draw step"
+                )
         active.has_drawn_this_turn = True
 
     def _phase_main(self, active: Player, phase: Phase):
@@ -662,14 +729,43 @@ class GameState:
                 self.winner = player
                 self.game_over = True
                 self.log(f"*** {player.name} wins! ***")
+                win_cond = getattr(self, '_win_condition_name', "unknown")
+                if self.audit:
+                    self.audit.win_condition(
+                        player.player_id, player.name, win_cond,
+                        self.turn_number, self.phase.name,
+                    )
                 return
 
-        # Check for players who have lost
+        # Check for players who have lost (life ≤ 0, deck out, etc.)
+        for player in self.players:
+            if not player.lost and player.life <= 0:
+                player.lost = True
+                self.log(f"*** {player.name} is eliminated (life ≤ 0). ***")
+                if self.audit:
+                    self.audit.player_lost(
+                        player.player_id, player.name, "life total",
+                        self.turn_number, self.phase.name,
+                    )
+            elif not player.lost and len(player.library) == 0 and player.has_drawn_this_turn:
+                player.lost = True
+                self.log(f"*** {player.name} is eliminated (empty library). ***")
+                if self.audit:
+                    self.audit.player_lost(
+                        player.player_id, player.name, "empty library",
+                        self.turn_number, self.phase.name,
+                    )
+
         living = self.living_players()
         if len(living) == 1:
             self.winner = living[0]
             self.game_over = True
             self.log(f"*** {living[0].name} wins (last player standing)! ***")
+            if self.audit:
+                self.audit.win_condition(
+                    living[0].player_id, living[0].name, "last standing",
+                    self.turn_number, self.phase.name,
+                )
         elif len(living) == 0:
             self.game_over = True
             self.log("*** No winners — simultaneous loss. ***")
@@ -704,6 +800,23 @@ class GameState:
             self.log(f"{player.name} draws opening hand: {[c.name for c in player.hand.cards()]}")
 
         self.log_separator("GAME SETUP COMPLETE")
+
+        if self.audit:
+            self.audit.game_start(
+                players=[
+                    {"id": p.player_id, "name": p.name, "is_human": p.is_human}
+                    for p in self.players
+                ],
+                commanders={
+                    p.player_id: [c.name for c in commander_map.get(p.player_id, [])]
+                    for p in self.players
+                },
+            )
+            for player in self.players:
+                self.audit.opening_hand(
+                    player.player_id, player.name,
+                    [c.name for c in player.hand.cards()],
+                )
 
 
 # ------------------------------------------------------------------

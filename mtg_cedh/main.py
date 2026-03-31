@@ -27,6 +27,7 @@ from .decks.storage import (
 )
 from .decks.loader import load_deck_file, make_card_instances, prefetch_deck
 from .ai.cedh_ai import make_ai
+from .audit.logger import AuditLogger
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +76,9 @@ def run_game(
     deck_configs: List[Tuple[str, str, bool]],
     max_turns: int = 20,
     seed: Optional[int] = None,
+    audit: bool = True,
+    audit_dir: Optional[str] = None,
+    verbose_audit: bool = False,
 ):
     """Run a single game with the given deck configurations."""
     import random
@@ -85,6 +89,16 @@ def run_game(
     players, deck_map, commander_map = setup_players(deck_configs)
 
     game = GameState(players=players, seed=seed)
+
+    if audit:
+        logs_path = Path(audit_dir) if audit_dir else Path(__file__).parent.parent / "game_logs"
+        logs_path.mkdir(parents=True, exist_ok=True)
+        game.audit = AuditLogger(
+            game_id=str(seed),
+            output_dir=str(logs_path),
+            verbose=verbose_audit,
+        )
+
     game.setup_game(deck_map, commander_map)
     game.run_game(max_turns=max_turns)
 
@@ -99,6 +113,8 @@ def run_simulation(
     deck_configs: List[Tuple[str, str, bool]],
     num_games: int = 10,
     max_turns: int = 20,
+    audit: bool = True,
+    audit_dir: Optional[str] = None,
 ):
     """Run multiple AI vs AI games and print win statistics."""
     import random
@@ -109,7 +125,7 @@ def run_simulation(
         print(f"\n{'='*40}")
         print(f"  Game {g_num}/{num_games}")
         print(f"{'='*40}")
-        game = run_game(deck_configs, max_turns=max_turns)
+        game = run_game(deck_configs, max_turns=max_turns, audit=audit, audit_dir=audit_dir)
 
         if game.winner:
             name = game.winner.name
@@ -324,6 +340,12 @@ def main():
                         help="List all AI profiles")
     parser.add_argument("--new-profile", metavar="DECK_ID",
                         help="Create a blank AI profile for the given deck ID")
+    parser.add_argument("--no-audit", action="store_true",
+                        help="Disable audit trail logging")
+    parser.add_argument("--audit-dir", metavar="DIR",
+                        help="Directory for audit log output (default: game_logs/)")
+    parser.add_argument("--verbose-audit", action="store_true",
+                        help="Print each audit event as it is recorded")
     args = parser.parse_args()
 
     # Ensure placeholder decks exist
@@ -390,10 +412,14 @@ def main():
         p_name = "Human" if is_human else f"AI-{deck_id[:12]}"
         configs.append((p_name, deck_id, is_human))
 
+    audit_enabled = not args.no_audit
     if args.mode == "sim":
-        run_simulation(configs, num_games=args.games, max_turns=args.turns)
+        run_simulation(configs, num_games=args.games, max_turns=args.turns,
+                       audit=audit_enabled, audit_dir=args.audit_dir)
     else:
-        run_game(configs, max_turns=args.turns, seed=args.seed)
+        run_game(configs, max_turns=args.turns, seed=args.seed,
+                 audit=audit_enabled, audit_dir=args.audit_dir,
+                 verbose_audit=args.verbose_audit)
 
 
 if __name__ == "__main__":
