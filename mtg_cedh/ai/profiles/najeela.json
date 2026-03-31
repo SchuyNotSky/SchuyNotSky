@@ -1,0 +1,67 @@
+{
+  "_comment": "AI Profile for Najeela, the Blade-Blossom (5c Warriors)",
+  "deck_id": "najeela",
+  "display_name": "Najeela Warriors",
+  "strategy": "aggro_combo",
+  "aggression": 0.9,
+
+  "win_lines": [
+    {
+      "name": "Najeela Infinite Combat",
+      "pieces": ["Najeela, the Blade-Blossom"],
+      "mana_required": ["W", "U", "B", "R", "G"],
+      "description": "Attack with warriors, activate Najeela for WUBRG to get infinite untap + extra combat."
+    },
+    {
+      "name": "Oracle + Consultation",
+      "pieces": ["Thassa's Oracle", "Demonic Consultation"],
+      "description": "Backup Oracle combo if combat line is disrupted."
+    }
+  ],
+
+  "tutor_priority": [
+    {
+      "condition": "commander_on_battlefield",
+      "commander": "Najeela, the Blade-Blossom",
+      "fetch": ["Bloom Tender", "Faeburrow Elder", "Selvala, Heart of the Wilds", "Nature's Will"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Thassa's Oracle",
+      "fetch": ["Demonic Consultation", "Tainted Pact"]
+    },
+    {
+      "condition": "always",
+      "fetch": ["Najeela, the Blade-Blossom", "Thassa's Oracle", "Mana Crypt", "Sol Ring"]
+    }
+  ],
+
+  "card_score_overrides": {
+    "Najeela, the Blade-Blossom": 100,
+    "Bloom Tender": 90,
+    "Faeburrow Elder": 88,
+    "Nature's Will": 85,
+    "Derevi, Empyrial Tactician": 82,
+    "Thassa's Oracle": 80,
+    "Demonic Consultation": 78
+  },
+
+  "always_counter": [
+    "Toxic Deluge",
+    "Wrath of God",
+    "Cyclonic Rift",
+    "Thassa's Oracle",
+    "Flash"
+  ],
+
+  "attack_strategy": {
+    "attack_always": true,
+    "prefer_weakest_opponent": true,
+    "swing_for_lethal_first": true
+  },
+
+  "life_thresholds": {
+    "shock_land_pay": 8,
+    "necropotence_draw_to": 20
+  }
+}

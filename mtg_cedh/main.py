@@ -155,6 +155,8 @@ def interactive_menu():
     print("    [3] Run simulation (N games, stats)")
     print("    [4] Pre-fetch Scryfall data for a deck")
     print("    [5] Add a deck from file")
+    print("    [6] Create / edit AI profile for a deck")
+    print("    [7] List AI profiles")
     print("    [q] Quit")
 
     choice = input("\n  Choose mode > ").strip()
@@ -171,6 +173,10 @@ def interactive_menu():
         _menu_prefetch(decks)
     elif choice == "5":
         _menu_add_deck()
+    elif choice == "6":
+        _menu_create_profile(decks)
+    elif choice == "7":
+        _menu_list_profiles()
     else:
         print("  Unknown choice.")
 
@@ -248,6 +254,44 @@ def _menu_add_deck():
     commander = input("  Commander name(s) > ").strip()
     save_deck_file(path, deck_id, name=name, commander=commander)
     print(f"  Deck '{deck_id}' added.")
+    create = input("  Create an AI profile for this deck now? [y/N] > ").strip().lower()
+    if create == "y":
+        _menu_create_profile_for(deck_id, name)
+
+
+def _menu_create_profile(decks):
+    print("\n  Create AI profile for which deck?")
+    for i, d in enumerate(decks):
+        print(f"    [{i}] {d['id']:25s} {d['name']}")
+    idx = input("  Deck > ").strip()
+    if idx.isdigit() and int(idx) < len(decks):
+        d = decks[int(idx)]
+        _menu_create_profile_for(d['id'], d['name'])
+
+
+def _menu_create_profile_for(deck_id: str, display_name: str):
+    from .ai.profile_loader import create_blank_profile, load_profile, PROFILES_DIR
+    existing = load_profile(deck_id)
+    if existing:
+        print(f"\n  Profile already exists for '{deck_id}'.")
+        print(f"  Edit it directly at: {PROFILES_DIR / deck_id}.json")
+        return
+    strategy = input("  Strategy [combo/aggro_combo/stax/midrange] (default: combo) > ").strip() or "combo"
+    profile = create_blank_profile(deck_id, display_name=display_name, strategy=strategy)
+    from .ai.profile_loader import PROFILES_DIR
+    print(f"\n  Profile created at: {PROFILES_DIR / deck_id}.json")
+    print("  Edit the JSON to fill in your win lines, tutor priorities, and card scores.")
+
+
+def _menu_list_profiles():
+    from .ai.profile_loader import list_profiles
+    profiles = list_profiles()
+    if not profiles:
+        print("\n  No AI profiles found.")
+        return
+    print(f"\n  AI Profiles ({len(profiles)}):")
+    for p in profiles:
+        print(f"    {p['deck_id']:25s} {p['display_name']:30s} [{p['strategy']}]")
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +320,10 @@ def main():
                         help="Register a deck list file")
     parser.add_argument("--init", action="store_true",
                         help="Create placeholder deck files and exit")
+    parser.add_argument("--list-profiles", action="store_true",
+                        help="List all AI profiles")
+    parser.add_argument("--new-profile", metavar="DECK_ID",
+                        help="Create a blank AI profile for the given deck ID")
     args = parser.parse_args()
 
     # Ensure placeholder decks exist
@@ -307,6 +355,22 @@ def main():
             path = get_deck_path(d['id'])
             if path:
                 prefetch_deck(path)
+        return
+
+    if args.list_profiles:
+        from .ai.profile_loader import list_profiles
+        profiles = list_profiles()
+        print(f"\nAI Profiles ({len(profiles)}):")
+        for p in profiles:
+            print(f"  {p['deck_id']:25s} {p['display_name']:30s} [{p['strategy']}]")
+        return
+
+    if args.new_profile:
+        from .ai.profile_loader import create_blank_profile, PROFILES_DIR
+        deck_id = args.new_profile
+        create_blank_profile(deck_id)
+        print(f"Profile created: {PROFILES_DIR / deck_id}.json")
+        print("Edit the JSON to define your win lines and tutor priorities.")
         return
 
     if args.mode is None:

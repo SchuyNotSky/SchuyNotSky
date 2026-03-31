@@ -253,7 +253,22 @@ class TivitAI(BaseAI):
 
 
 def make_ai(player_id: str, deck_id: str) -> BaseAI:
-    """Factory: create the right AI for a given deck."""
+    """
+    Factory: create the AI for a given deck.
+
+    Priority order:
+      1. If a JSON profile exists for deck_id → use ProfileAI (data-driven)
+      2. If a hardcoded subclass exists → use it (legacy, kept for reference)
+      3. Fall back to BaseAI
+    """
+    from .profile_loader import load_profile
+    from .profile_ai import ProfileAI
+
+    # Prefer profile-driven AI for any deck that has a profile
+    if load_profile(deck_id):
+        return ProfileAI(player_id, deck_id)
+
+    # Legacy hardcoded subclasses (still work, but profiles take precedence)
     mapping = {
         "thrasios_tymna": ConsultationAI,
         "najeela":        NajeelaAI,
