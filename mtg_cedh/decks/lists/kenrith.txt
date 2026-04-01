@@ -1,0 +1,77 @@
+// Kenrith, the Returned King
+// 5-color Iso+Rev / Flash+Hulk / Doomsday
+// Paste your full list below.
+
+Commander (1)
+1 Kenrith, the Returned King
+
+Deck (99)
+// --- Fast Mana ---
+1 Sol Ring
+1 Mana Crypt
+1 Mana Vault
+1 Grim Monolith
+1 Basalt Monolith
+1 Chrome Mox
+1 Mox Diamond
+1 Lotus Petal
+1 Jeweled Lotus
+// --- Win Conditions ---
+1 Isochron Scepter
+1 Dramatic Reversal
+1 Thassa's Oracle
+1 Demonic Consultation
+1 Flash
+1 Protean Hulk
+// --- Tutors ---
+1 Demonic Tutor
+1 Vampiric Tutor
+1 Imperial Seal
+1 Mystical Tutor
+1 Enlightened Tutor
+1 Merchant Scroll
+1 Intuition
+// --- Counterspells ---
+1 Force of Will
+1 Force of Negation
+1 Counterspell
+1 Fierce Guardianship
+1 Pact of Negation
+1 Mana Drain
+1 Mental Misstep
+1 Flusterstorm
+1 Swan Song
+// --- Card Draw ---
+1 Rhystic Study
+1 Mystic Remora
+1 Sylvan Library
+1 Ad Nauseam
+1 Windfall
+1 Timetwister
+1 Brainstorm
+1 Ponder
+1 Preordain
+// --- Removal ---
+1 Swords to Plowshares
+1 Cyclonic Rift
+1 Toxic Deluge
+1 Force of Vigor
+// --- Lands ---
+1 Command Tower
+1 Ancient Tomb
+1 Exotic Orchard
+1 Polluted Delta
+1 Flooded Strand
+1 Bloodstained Mire
+1 Windswept Heath
+1 Misty Rainforest
+1 Wooded Foothills
+1 Scalding Tarn
+1 Underground Sea
+1 Volcanic Island
+1 Tundra
+1 Bayou
+1 Savannah
+1 Taiga
+1 Tropical Island
+// Add remaining cards here

@@ -1,0 +1,1 @@
+# MTG cEDH Simulator - Decks

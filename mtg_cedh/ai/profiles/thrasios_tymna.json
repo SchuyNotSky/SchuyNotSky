@@ -1,0 +1,101 @@
+{
+  "_comment": "AI Profile for Thrasios + Tymna (4c Consultation)",
+  "deck_id": "thrasios_tymna",
+  "display_name": "Thrasios + Tymna",
+  "strategy": "combo",
+  "aggression": 0.1,
+
+  "win_lines": [
+    {
+      "name": "Oracle + Consultation",
+      "pieces": ["Thassa's Oracle", "Demonic Consultation"],
+      "description": "Cast Consultation naming a card not in deck to exile library, then cast Oracle to win."
+    },
+    {
+      "name": "Oracle + Tainted Pact",
+      "pieces": ["Thassa's Oracle", "Tainted Pact"],
+      "description": "Cast Tainted Pact to exile library, then cast Oracle to win."
+    },
+    {
+      "name": "Ad Nauseam setup",
+      "pieces": ["Ad Nauseam"],
+      "description": "Cast Ad Nauseam to draw combo pieces."
+    }
+  ],
+
+  "tutor_priority": [
+    {
+      "condition": "have_piece",
+      "piece": "Thassa's Oracle",
+      "fetch": ["Demonic Consultation", "Tainted Pact"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Demonic Consultation",
+      "fetch": ["Thassa's Oracle"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Tainted Pact",
+      "fetch": ["Thassa's Oracle"]
+    },
+    {
+      "condition": "turn_lte",
+      "turn": 3,
+      "fetch": ["Mana Crypt", "Sol Ring", "Jeweled Lotus", "Dark Ritual"]
+    },
+    {
+      "condition": "always",
+      "fetch": ["Thassa's Oracle", "Ad Nauseam", "Necropotence", "Rhystic Study"]
+    }
+  ],
+
+  "card_score_overrides": {
+    "Thassa's Oracle": 100,
+    "Demonic Consultation": 95,
+    "Tainted Pact": 93,
+    "Ad Nauseam": 85,
+    "Necropotence": 82,
+    "Veil of Summer": 90,
+    "Silence": 88,
+    "Grand Abolisher": 75
+  },
+
+  "always_counter": [
+    "Thassa's Oracle",
+    "Demonic Consultation",
+    "Tainted Pact",
+    "Ad Nauseam",
+    "Flash",
+    "Underworld Breach"
+  ],
+
+  "protection_spells": [
+    "Veil of Summer", "Silence", "Orim's Chant", "Grand Abolisher",
+    "Autumn's Veil", "Fierce Guardianship", "Deflecting Swat"
+  ],
+
+  "life_thresholds": {
+    "ad_nauseam_stop": 5,
+    "shock_land_pay": 4,
+    "necropotence_draw_to": 15
+  },
+
+  "priority_policy": {
+    "_comment": "Tight control combo — low thresholds, counter aggressively, hold up protection",
+    "counter_hard_threshold": 65,
+    "counter_free_threshold": 45,
+    "always_respond_to": [
+      "Thassa's Oracle",
+      "Demonic Consultation",
+      "Tainted Pact",
+      "Ad Nauseam",
+      "Flash",
+      "Underworld Breach",
+      "Thassa's Oracle trigger (etb)"
+    ],
+    "never_counter": [],
+    "hold_up_mana_end_step": true,
+    "pass_on_mana_positive": false
+  }
+}

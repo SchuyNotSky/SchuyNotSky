@@ -1,0 +1,34 @@
+{
+  "thrasios_tymna": {
+    "id": "thrasios_tymna",
+    "name": "Thrasios + Tymna (4c Consultation)",
+    "commander": "Thrasios, Triton Hero / Tymna the Weaver",
+    "description": "4-color Oracle+Consultation / Tainted Pact combo",
+    "path": "/home/user/SchuyNotSky/mtg_cedh/decks/lists/thrasios_tymna.txt",
+    "last_modified": "2026-03-31T01:15:17.046918"
+  },
+  "najeela": {
+    "id": "najeela",
+    "name": "Najeela, the Blade-Blossom (5c Warriors)",
+    "commander": "Najeela, the Blade-Blossom",
+    "description": "5-color Warrior tribal with infinite combat win",
+    "path": "/home/user/SchuyNotSky/mtg_cedh/decks/lists/najeela.txt",
+    "last_modified": "2026-03-31T01:15:17.047447"
+  },
+  "kenrith": {
+    "id": "kenrith",
+    "name": "Kenrith, the Returned King (5c Goodstuff)",
+    "commander": "Kenrith, the Returned King",
+    "description": "5-color Iso+Rev / Doomsday / Flash+Hulk",
+    "path": "/home/user/SchuyNotSky/mtg_cedh/decks/lists/kenrith.txt",
+    "last_modified": "2026-03-31T01:15:17.047664"
+  },
+  "tivit": {
+    "id": "tivit",
+    "name": "Tivit, Seller of Secrets (UW Artifacts)",
+    "commander": "Tivit, Seller of Secrets",
+    "description": "UW Artifact combo with Ballot Broker / Clue tokens",
+    "path": "/home/user/SchuyNotSky/mtg_cedh/decks/lists/tivit.txt",
+    "last_modified": "2026-03-31T01:15:17.048036"
+  }
+}

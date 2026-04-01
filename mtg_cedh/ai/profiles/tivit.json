@@ -1,0 +1,91 @@
+{
+  "_comment": "AI Profile for Tivit, Seller of Secrets (UW Artifacts)",
+  "deck_id": "tivit",
+  "display_name": "Tivit Artifacts",
+  "strategy": "combo",
+  "aggression": 0.1,
+
+  "win_lines": [
+    {
+      "name": "Iso + Dramatic Reversal",
+      "pieces": ["Isochron Scepter", "Dramatic Reversal"],
+      "description": "Infinite mana with artifact rocks, then Tivit for infinite draw/votes."
+    },
+    {
+      "name": "Oracle + Consultation",
+      "pieces": ["Thassa's Oracle", "Demonic Consultation"],
+      "description": "Oracle combo as primary or backup."
+    }
+  ],
+
+  "tutor_priority": [
+    {
+      "condition": "have_piece",
+      "piece": "Isochron Scepter",
+      "fetch": ["Dramatic Reversal"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Dramatic Reversal",
+      "fetch": ["Isochron Scepter"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Thassa's Oracle",
+      "fetch": ["Demonic Consultation", "Tainted Pact"]
+    },
+    {
+      "condition": "turn_lte",
+      "turn": 2,
+      "fetch": ["Mana Vault", "Grim Monolith", "Basalt Monolith", "Mana Crypt"]
+    },
+    {
+      "condition": "always",
+      "fetch": ["Isochron Scepter", "Thassa's Oracle", "Mana Vault", "Rhystic Study"]
+    }
+  ],
+
+  "card_score_overrides": {
+    "Isochron Scepter": 95,
+    "Dramatic Reversal": 93,
+    "Thassa's Oracle": 88,
+    "Demonic Consultation": 85,
+    "Mana Vault": 82,
+    "Grim Monolith": 80,
+    "Basalt Monolith": 78
+  },
+
+  "always_counter": [
+    "Thassa's Oracle",
+    "Flash",
+    "Demonic Consultation",
+    "Underworld Breach"
+  ],
+
+  "artifact_priority": true,
+
+  "life_thresholds": {
+    "shock_land_pay": 4,
+    "necropotence_draw_to": 12
+  },
+
+  "priority_policy": {
+    "_comment": "UW control-combo — hold mana open, Mana Drain everything, high but selective interaction",
+    "counter_hard_threshold": 68,
+    "counter_free_threshold": 48,
+    "always_respond_to": [
+      "Thassa's Oracle",
+      "Demonic Consultation",
+      "Tainted Pact",
+      "Flash",
+      "Underworld Breach",
+      "Ad Nauseam"
+    ],
+    "never_counter": [
+      "Demonic Tutor",
+      "Vampiric Tutor"
+    ],
+    "hold_up_mana_end_step": true,
+    "pass_on_mana_positive": false
+  }
+}

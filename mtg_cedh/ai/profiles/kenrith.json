@@ -1,0 +1,107 @@
+{
+  "_comment": "AI Profile for Kenrith, the Returned King (5c Goodstuff)",
+  "deck_id": "kenrith",
+  "display_name": "Kenrith Goodstuff",
+  "strategy": "combo",
+  "aggression": 0.2,
+
+  "win_lines": [
+    {
+      "name": "Iso + Dramatic Reversal",
+      "pieces": ["Isochron Scepter", "Dramatic Reversal"],
+      "description": "Imprint Dramatic Reversal, tap mana rocks for infinite mana, use Kenrith to draw deck and win."
+    },
+    {
+      "name": "Flash + Protean Hulk",
+      "pieces": ["Flash", "Protean Hulk"],
+      "description": "Flash in Hulk, it dies, search for a pile that wins immediately."
+    },
+    {
+      "name": "Oracle + Consultation",
+      "pieces": ["Thassa's Oracle", "Demonic Consultation"],
+      "description": "Backup Oracle combo."
+    }
+  ],
+
+  "tutor_priority": [
+    {
+      "condition": "have_piece",
+      "piece": "Isochron Scepter",
+      "fetch": ["Dramatic Reversal"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Dramatic Reversal",
+      "fetch": ["Isochron Scepter"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Flash",
+      "fetch": ["Protean Hulk"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Protean Hulk",
+      "fetch": ["Flash"]
+    },
+    {
+      "condition": "have_piece",
+      "piece": "Thassa's Oracle",
+      "fetch": ["Demonic Consultation", "Tainted Pact"]
+    },
+    {
+      "condition": "turn_lte",
+      "turn": 2,
+      "fetch": ["Mana Vault", "Grim Monolith", "Mana Crypt", "Sol Ring"]
+    },
+    {
+      "condition": "always",
+      "fetch": ["Isochron Scepter", "Thassa's Oracle", "Flash", "Ad Nauseam"]
+    }
+  ],
+
+  "card_score_overrides": {
+    "Isochron Scepter": 95,
+    "Dramatic Reversal": 93,
+    "Flash": 90,
+    "Protean Hulk": 88,
+    "Thassa's Oracle": 85,
+    "Demonic Consultation": 83
+  },
+
+  "always_counter": [
+    "Thassa's Oracle",
+    "Demonic Consultation",
+    "Flash",
+    "Ad Nauseam",
+    "Underworld Breach"
+  ],
+
+  "life_thresholds": {
+    "shock_land_pay": 4,
+    "ad_nauseam_stop": 8,
+    "necropotence_draw_to": 12
+  },
+
+  "priority_policy": {
+    "_comment": "Flexible goodstuff — moderate interaction, political, counters win lines but not tutors",
+    "counter_hard_threshold": 70,
+    "counter_free_threshold": 52,
+    "always_respond_to": [
+      "Thassa's Oracle",
+      "Demonic Consultation",
+      "Tainted Pact",
+      "Flash",
+      "Underworld Breach"
+    ],
+    "never_counter": [
+      "Sol Ring",
+      "Mana Crypt",
+      "Brainstorm",
+      "Ponder",
+      "Preordain"
+    ],
+    "hold_up_mana_end_step": true,
+    "pass_on_mana_positive": false
+  }
+}

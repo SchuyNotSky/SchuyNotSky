@@ -1,0 +1,70 @@
+// Tivit, Seller of Secrets
+// UW Artifacts — Council's Dilemma / Clue / Treasure combo
+// Paste your full list below.
+
+Commander (1)
+1 Tivit, Seller of Secrets
+
+Deck (99)
+// --- Fast Mana ---
+1 Sol Ring
+1 Mana Crypt
+1 Mana Vault
+1 Grim Monolith
+1 Basalt Monolith
+1 Chrome Mox
+1 Lotus Petal
+1 Jeweled Lotus
+// --- Win Conditions ---
+1 Isochron Scepter
+1 Dramatic Reversal
+1 Thassa's Oracle
+1 Demonic Consultation
+// --- Tutors ---
+1 Mystical Tutor
+1 Enlightened Tutor
+1 Merchant Scroll
+1 Fabricate
+// --- Counterspells ---
+1 Force of Will
+1 Force of Negation
+1 Counterspell
+1 Fierce Guardianship
+1 Pact of Negation
+1 Mana Drain
+1 Mental Misstep
+1 Flusterstorm
+1 Swan Song
+// --- Card Draw ---
+1 Rhystic Study
+1 Mystic Remora
+1 Brainstorm
+1 Ponder
+1 Preordain
+1 Gitaxian Probe
+1 Windfall
+// --- Removal ---
+1 Swords to Plowshares
+1 Path to Exile
+1 Chain of Vapor
+1 Cyclonic Rift
+// --- Stax/Hate ---
+1 Collector Ouphe
+1 Null Rod
+1 Cursed Totem
+// --- Lands ---
+1 Command Tower
+1 Ancient Tomb
+1 Exotic Orchard
+1 Polluted Delta
+1 Flooded Strand
+1 Misty Rainforest
+1 Scalding Tarn
+1 Underground Sea
+1 Volcanic Island
+1 Tundra
+1 Watery Grave
+1 Steam Vents
+1 Hallowed Fountain
+1 Breeding Pool
+// Add remaining cards here
