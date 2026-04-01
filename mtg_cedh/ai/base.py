@@ -5,6 +5,11 @@ All deck-specific AIs subclass this and override decision methods.
 from __future__ import annotations
 from typing import List, Optional, TYPE_CHECKING
 
+from .threat import (
+    assess_threat, assess_stack_threat, evaluate_priority_window,
+    THREAT_HIGH, THREAT_MEDIUM, THREAT_CRITICAL, THREAT_LETHAL,
+)
+
 if TYPE_CHECKING:
     from ..engine.player import Player
     from ..engine.game import GameState
@@ -26,6 +31,10 @@ class BaseAI:
     # Priority action — called each time this player has priority
     # ------------------------------------------------------------------
 
+    # Priority policy defaults — overridden by ProfileAI from JSON
+    COUNTER_HARD_THRESHOLD = THREAT_HIGH      # 70: spend any counter
+    COUNTER_FREE_THRESHOLD = THREAT_MEDIUM    # 50: spend a free counter
+
     def take_priority_action(
         self,
         player: "Player",
@@ -37,24 +46,33 @@ class BaseAI:
         """
         Decide what to do with priority.
         Returns True if an action was taken, False to pass priority.
+
+        Decision flow (tournament-accurate):
+        1. If split second is active — can only use mana abilities (pass)
+        2. If stack has threats — evaluate via ThreatAssessment + game theory
+        3. If our turn + main phase — play proactively
+        4. Instant-speed actions on opponents' turns
         """
-        # Check for silenced state
+        # Check for silenced state (Veil of Summer etc.)
         if getattr(player, '_silenced_until_eot', False):
             return False
 
-        # 1. Respond to threats on the stack
+        # 1. Split second: nothing we can do except mana abilities (already bypass stack)
+        if getattr(game, 'split_second_active', False):
+            return False
+
+        # 2. Evaluate stack threats with game theory
         if not game.stack.is_empty():
             response = self._respond_to_stack(player, game)
             if response:
                 return True
 
-        # 2. On our own turn during main phase, take proactive actions
+        # 3. On our own turn during main phase, take proactive actions
         if is_active and is_main:
             acted = self._take_main_phase_action(player, game)
             if acted:
                 return True
 
-        # 3. Play lands during opponent's turn? No — only on our turn
         # 4. Flash / instant-speed interaction on opponents' turns
         if not is_active:
             acted = self._take_instant_speed_action(player, game)
@@ -104,42 +122,119 @@ class BaseAI:
     # ------------------------------------------------------------------
 
     def _respond_to_stack(self, player: "Player", game: "GameState") -> bool:
-        """Decide whether to counter or respond to the top stack item."""
+        """
+        Decide whether to respond to the current stack using game theory.
+        Uses ThreatAssessment to score the top of stack and PriorityDecision
+        to determine if spending a resource is correct.
+        """
         top = game.stack.peek()
-        if not top:
+        if not top or top.controller_id == player.player_id:
             return False
 
-        # Don't counter our own spells
-        if top.controller_id == player.player_id:
+        # Find what interaction we have available
+        free_counter = self._find_free_counterspell(player, game)
+        hard_counter = self._find_hard_counterspell(player, game)
+        has_free = free_counter is not None
+        has_hard = hard_counter is not None or free_counter is not None
+
+        decision = evaluate_priority_window(
+            viewer=player,
+            game=game,
+            counter_hard_threshold=self.COUNTER_HARD_THRESHOLD,
+            counter_free_threshold=self.COUNTER_FREE_THRESHOLD,
+            has_counterspell=has_hard,
+            has_free_counter=has_free,
+        )
+
+        if game.audit:
+            game.audit.ai_counter_eval(
+                player.player_id, player.name,
+                target_spell=top.name,
+                decision="counter" if decision.should_respond else "pass",
+                reason=decision.reason,
+            )
+
+        if not decision.should_respond:
             return False
 
-        # Counter opponent win conditions
-        if self._should_counter(top, player, game):
-            counter = self._find_counterspell(player, game)
-            if counter:
-                self._tap_mana_sources(player, game)
-                if game.cast_spell(counter, player, targets=[top]):
-                    return True
+        # Pick best counter: prefer free > hard, save hard counters if free available
+        counter = free_counter or hard_counter
+        if not counter:
+            return False
+
+        self._tap_mana_sources(player, game)
+        if game.cast_spell(counter, player, targets=[top]):
+            if game.audit:
+                game.audit.ai_decision(
+                    player.player_id, player.name,
+                    action="counter",
+                    card_name=counter.name,
+                    score=decision.stack_threat,
+                    reasoning=decision.reason,
+                )
+            return True
 
         return False
 
     def _should_counter(self, stack_item, player: "Player", game: "GameState") -> bool:
-        """Decide if a stack item is worth countering."""
-        if not stack_item.source:
-            return False
-        name = stack_item.source.name.lower()
-        # Always counter these
-        must_counter = {
-            "thassa's oracle", "demonic consultation", "tainted pact",
-            "ad nauseam", "flash", "underworld breach", "timetwister",
-        }
-        if name in must_counter:
-            return True
-        # Counter tutors if we can
-        tutors = {"demonic tutor", "vampiric tutor", "imperial seal"}
-        if name in tutors and player.life > 15:
-            return True
-        return False
+        """
+        Legacy compatibility wrapper. Returns True if threat score exceeds hard threshold.
+        Subclasses can override for always_counter lists.
+        """
+        threat = assess_threat(stack_item, player, game)
+        return threat >= self.COUNTER_HARD_THRESHOLD
+
+    def _find_free_counterspell(self, player: "Player", game: "GameState"):
+        """
+        Find a counterspell with no mana cost (or pitch cost).
+        Free counters: Fierce Guardianship, Force of Will (pitch), Deflecting Swat,
+        Pact of Negation (free now, pay later), Mental Misstep (0 for 1-CMC).
+        """
+        from ..engine.card import CardType, Keyword
+        free_priority = [
+            "fierce guardianship",
+            "deflecting swat",
+            "force of will",
+            "force of negation",
+            "pact of negation",
+            "mental misstep",
+        ]
+        hand = player.hand.cards()
+        for name in free_priority:
+            for c in hand:
+                if c.name.lower() == name:
+                    # For Force of Will: needs a blue card to pitch + 1 life
+                    if "force of will" in name or "force of negation" in name:
+                        blue_cards = [h for h in hand if h is not c and
+                                      self._card_is_blue(h)]
+                        if blue_cards and player.life > 1:
+                            return c
+                    else:
+                        return c
+        return None
+
+    def _find_hard_counterspell(self, player: "Player", game: "GameState"):
+        """Find a paid counterspell we can currently afford."""
+        hard_priority = [
+            "mana drain", "counterspell",
+            "flusterstorm", "swan song", "spell pierce",
+        ]
+        hand = player.hand.cards()
+        for name in hard_priority:
+            for c in hand:
+                if c.name.lower() == name and self._can_cast(c, player, game):
+                    return c
+        return None
+
+    def _find_counterspell(self, player: "Player", game: "GameState"):
+        """Unified: find best available counterspell (free preferred)."""
+        return (self._find_free_counterspell(player, game) or
+                self._find_hard_counterspell(player, game))
+
+    def _card_is_blue(self, card) -> bool:
+        """Check if a card has blue in its mana cost (for Force of Will pitch)."""
+        from ..engine.mana import Color
+        return card.data.mana_cost.pips.get(Color.BLUE, 0) > 0
 
     def _find_counterspell(self, player: "Player", game: "GameState"):
         """Find the best counterspell to use."""

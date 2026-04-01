@@ -9,6 +9,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 from .base import BaseAI
 from .profile_loader import load_profile
+from .threat import (
+    assess_threat, evaluate_priority_window,
+    THREAT_HIGH, THREAT_MEDIUM, THREAT_CRITICAL,
+)
 
 if TYPE_CHECKING:
     from ..engine.player import Player
@@ -20,6 +24,14 @@ class ProfileAI(BaseAI):
     """
     AI whose behavior is defined by a JSON profile.
     Falls back to BaseAI defaults for any decision not covered by the profile.
+
+    priority_policy JSON keys:
+      counter_hard_threshold  (int, default 70) — threat score at which we use any counter
+      counter_free_threshold  (int, default 50) — threat score at which we use a free counter
+      always_respond_to       ([str])            — spell names we always counter regardless
+      never_counter           ([str])            — spell names we let resolve (table politics)
+      hold_up_mana_end_step   (bool)             — keep mana open on opponents' end steps
+      pass_on_mana_positive   (bool)             — if opponent's spell helps us, let it resolve
     """
 
     def __init__(self, player_id: str, deck_id: str):
@@ -37,6 +49,19 @@ class ProfileAI(BaseAI):
         self._life_thresholds: dict = self.profile.get("life_thresholds", {})
         self._artifact_priority: bool = self.profile.get("artifact_priority", False)
         self._attack_strategy: dict = self.profile.get("attack_strategy", {})
+
+        # Priority policy — drives game-theory decisions
+        pp = self.profile.get("priority_policy", {})
+        self.COUNTER_HARD_THRESHOLD = int(pp.get("counter_hard_threshold", THREAT_HIGH))
+        self.COUNTER_FREE_THRESHOLD = int(pp.get("counter_free_threshold", THREAT_MEDIUM))
+        self._always_respond_to: set = {
+            n.lower() for n in pp.get("always_respond_to", [])
+        }
+        self._never_counter: set = {
+            n.lower() for n in pp.get("never_counter", [])
+        }
+        self._hold_up_mana_end_step: bool = pp.get("hold_up_mana_end_step", False)
+        self._pass_on_mana_positive: bool = pp.get("pass_on_mana_positive", False)
 
     # ------------------------------------------------------------------
     # Tutor target — core of profile-driven behavior
@@ -115,16 +140,72 @@ class ProfileAI(BaseAI):
         return False
 
     # ------------------------------------------------------------------
-    # Counter decisions
+    # Counter decisions — profile-aware game theory
     # ------------------------------------------------------------------
 
     def _should_counter(self, stack_item, player, game) -> bool:
+        """
+        Override: checks always_respond_to and never_counter profile lists
+        before falling through to ThreatAssessment.
+        """
         if not stack_item.source:
             return False
         name = stack_item.source.name.lower()
-        if name in self._always_counter:
+
+        # Profile: always counter these regardless of score
+        if name in self._always_counter or name in self._always_respond_to:
             return True
+
+        # Profile: never counter these (table politics, deal-making)
+        if name in self._never_counter:
+            return False
+
+        # Delegate to game theory
         return super()._should_counter(stack_item, player, game)
+
+    def _respond_to_stack(self, player, game) -> bool:
+        """
+        Profile-aware override. Also checks pass_on_mana_positive heuristic:
+        if an opponent's spell gives everyone mana/cards (wheel, rhystic tax, etc.)
+        and we benefit too, consider passing.
+        """
+        top = game.stack.peek()
+        if not top or top.controller_id == player.player_id:
+            return False
+
+        spell_name = (top.source.name if top.source else top.name).lower()
+
+        # Explicit always-respond list bypasses all other logic
+        if spell_name in self._always_respond_to:
+            counter = self._find_counterspell(player, game)
+            if counter:
+                self._tap_mana_sources(player, game)
+                acted = game.cast_spell(counter, player, targets=[top])
+                if acted and game.audit:
+                    game.audit.ai_decision(
+                        player.player_id, player.name,
+                        action="counter",
+                        card_name=counter.name,
+                        score=100,
+                        reasoning=f"always_respond_to list: {spell_name}",
+                    )
+                return acted
+
+        # Mana-positive pass: let opponent's group hug spell go through
+        _mana_positive = {"rhystic study", "mystic remora", "smothering tithe",
+                          "windfall", "timetwister"}
+        if self._pass_on_mana_positive and spell_name in _mana_positive:
+            if game.audit:
+                game.audit.ai_counter_eval(
+                    player.player_id, player.name,
+                    target_spell=top.name,
+                    decision="pass",
+                    reason="pass_on_mana_positive policy",
+                )
+            return False
+
+        # Delegate to base game theory (ThreatAssessment)
+        return super()._respond_to_stack(player, game)
 
     # ------------------------------------------------------------------
     # Combat — respect aggression setting

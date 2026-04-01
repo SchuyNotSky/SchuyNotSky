@@ -283,6 +283,8 @@ class StackItem:
         targets: Optional[List] = None,
         x_value: int = 0,
         is_ability: bool = False,
+        is_mana_ability: bool = False,
+        has_split_second: bool = False,
         copies: int = 1,  # for Storm
     ):
         self.source = source
@@ -292,6 +294,8 @@ class StackItem:
         self.targets = targets or []
         self.x_value = x_value
         self.is_ability = is_ability
+        self.is_mana_ability = is_mana_ability
+        self.has_split_second = has_split_second
         self.copies = copies
         self.countered = False
 

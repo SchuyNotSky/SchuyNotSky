@@ -67,5 +67,25 @@
   "life_thresholds": {
     "shock_land_pay": 4,
     "necropotence_draw_to": 12
+  },
+
+  "priority_policy": {
+    "_comment": "UW control-combo — hold mana open, Mana Drain everything, high but selective interaction",
+    "counter_hard_threshold": 68,
+    "counter_free_threshold": 48,
+    "always_respond_to": [
+      "Thassa's Oracle",
+      "Demonic Consultation",
+      "Tainted Pact",
+      "Flash",
+      "Underworld Breach",
+      "Ad Nauseam"
+    ],
+    "never_counter": [
+      "Demonic Tutor",
+      "Vampiric Tutor"
+    ],
+    "hold_up_mana_end_step": true,
+    "pass_on_mana_positive": false
   }
 }

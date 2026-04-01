@@ -81,5 +81,27 @@
     "shock_land_pay": 4,
     "ad_nauseam_stop": 8,
     "necropotence_draw_to": 12
+  },
+
+  "priority_policy": {
+    "_comment": "Flexible goodstuff — moderate interaction, political, counters win lines but not tutors",
+    "counter_hard_threshold": 70,
+    "counter_free_threshold": 52,
+    "always_respond_to": [
+      "Thassa's Oracle",
+      "Demonic Consultation",
+      "Tainted Pact",
+      "Flash",
+      "Underworld Breach"
+    ],
+    "never_counter": [
+      "Sol Ring",
+      "Mana Crypt",
+      "Brainstorm",
+      "Ponder",
+      "Preordain"
+    ],
+    "hold_up_mana_end_step": true,
+    "pass_on_mana_positive": false
   }
 }

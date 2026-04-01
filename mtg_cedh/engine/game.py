@@ -290,6 +290,7 @@ class GameState:
         def resolve_effect(game: GameState):
             _resolve_cast(card, game, player.player_id, x_value, targets)
 
+        has_ss = Keyword.SPLIT_SECOND in card.data.keywords if hasattr(Keyword, 'SPLIT_SECOND') else False
         item = StackItem(
             source=card,
             controller_id=player.player_id,
@@ -297,6 +298,7 @@ class GameState:
             name=card.name,
             targets=targets or [],
             x_value=x_value,
+            has_split_second=has_ss,
         )
         self.stack.push(item)
         self.log(f"{player.name} casts {card.name}.")
@@ -366,11 +368,18 @@ class GameState:
         ability = card.data.activated_abilities[ability_index]
         cost = ability.get("cost")
         effect_fn = ability.get("effect")
+        is_mana = ability.get("is_mana_ability", False)
 
         if cost and not _pay_ability_cost(card, cost, player, self, color_choice):
             return False
 
         if effect_fn:
+            # Mana abilities resolve immediately — they don't use the stack
+            if is_mana:
+                effect_fn(card, self, player, x_value, targets)
+                self.log(f"{player.name} activates mana ability of {card.name}.")
+                return True
+
             def resolve_abil(game: GameState):
                 effect_fn(card, game, player, x_value, targets)
 
@@ -382,6 +391,7 @@ class GameState:
                 targets=targets or [],
                 x_value=x_value,
                 is_ability=True,
+                is_mana_ability=False,
             )
             self.stack.push(item)
             self.log(f"{player.name} activates {ability.get('name', card.name)}.")
@@ -404,6 +414,24 @@ class GameState:
                     countered_by="counter effect", countered_by_player="?"
                 )
         else:
+            # Target validation: if all targets have left the battlefield, fizzle
+            if item.targets and not item.is_ability:
+                live_targets = [
+                    t for t in item.targets
+                    if self.battlefield.contains(t)
+                    or (hasattr(t, 'zone') and t.zone.value != 'graveyard')
+                ]
+                if not live_targets and item.targets:
+                    self.log(f"{item.name} fizzles — all targets illegal.")
+                    if self.audit and item.source:
+                        self.audit.spell_countered(
+                            item.name, item.controller_id,
+                            countered_by="fizzle (illegal targets)",
+                            countered_by_player="rules"
+                        )
+                    apply_all_sbas(self)
+                    return  # fizzle: don't resolve
+
             if self.audit and item.source and not item.is_ability:
                 ctrl = self.get_player(item.controller_id)
                 self.audit.spell_resolve(
@@ -611,17 +639,28 @@ class GameState:
     # Priority passing
     # ------------------------------------------------------------------
 
+    def _is_split_second_active(self) -> bool:
+        """Returns True if the top of the stack has Split Second."""
+        top = self.stack.peek()
+        return top is not None and top.has_split_second
+
     def _give_priority(self, active: Player):
         """
         Give priority to each player in turn order.
         Players take actions (cast spells, activate abilities) or pass.
         Stack resolves when all players pass in succession.
+
+        Tournament-accurate: split second blocks all non-mana responses;
+        priority returns to active player after every action or resolution.
         """
         # Give each player a chance to act, starting with active player
         for player in [active] + self.opponents_of(active.player_id):
             if player.lost:
                 continue
             player.passed_priority = False
+
+        # Expose split-second state on game so AI/human can read it
+        self.split_second_active = False
 
         # Loop: give priority until all pass with empty stack
         passes_in_a_row = 0
@@ -632,6 +671,11 @@ class GameState:
             if self.game_over:
                 return
 
+            # Update split-second flag before each priority window
+            self.split_second_active = self._is_split_second_active()
+            if self.split_second_active:
+                self.log("[Split Second] No spells or abilities may be cast in response.")
+
             current = player_order[idx % len(player_order)]
             if current.lost:
                 idx += 1
@@ -640,6 +684,7 @@ class GameState:
                     if self.stack.is_empty():
                         break
                     self.resolve_stack()
+                    self.split_second_active = False
                     passes_in_a_row = 0
                 continue
 
@@ -651,19 +696,25 @@ class GameState:
 
             if action_taken:
                 passes_in_a_row = 0
+                # After any action, priority restarts from active player (rule 117.3c)
+                idx = 0
+                continue
             else:
                 passes_in_a_row += 1
 
             if passes_in_a_row >= len([p for p in player_order if not p.lost]):
                 if self.stack.is_empty():
                     break
-                # Resolve top of stack
+                # All passed — resolve top of stack, then reset priority to active player
                 self.resolve_stack()
+                self.split_second_active = False
                 passes_in_a_row = 0
-                idx = 0  # restart priority from active player
+                idx = 0  # priority returns to active player after resolution
                 continue
 
             idx += 1
+
+        self.split_second_active = False
 
     def _ai_priority_action(self, player: Player, active: Player) -> bool:
         """Ask AI what to do with priority. Returns True if action was taken."""
@@ -696,27 +747,65 @@ class GameState:
     # Triggers
     # ------------------------------------------------------------------
 
+    def _queue_trigger(self, card: Card, ctrl: Player, effect_fn, trigger_name: str):
+        """
+        Put a triggered ability onto the stack as a StackItem.
+        Each trigger goes on the stack individually; priority is given after all
+        triggers for the same event are enqueued (APNAP order for simultaneous).
+        """
+        def resolve_trigger(game: GameState):
+            effect_fn(card, game, ctrl)
+
+        item = StackItem(
+            source=card,
+            controller_id=ctrl.player_id,
+            effect=resolve_trigger,
+            name=f"{card.name} trigger ({trigger_name})",
+            is_ability=True,
+        )
+        self.stack.push(item)
+        self.log(f"[Trigger] {card.name} triggers ({trigger_name}) for {ctrl.name}.")
+
     def _fire_upkeep_triggers(self, active: Player):
-        """Fire 'at the beginning of your upkeep' triggered abilities."""
-        for card in self.battlefield.cards():
-            for trig in card.data.triggered_abilities:
-                if trig.get("trigger") == "upkeep":
+        """
+        Queue 'at the beginning of upkeep' triggers onto the stack (APNAP order),
+        then give priority so players can respond.
+        """
+        # APNAP: active player's triggers first, then each opponent in turn order
+        player_order = [active] + self.opponents_of(active.player_id)
+        for player in player_order:
+            for card in self.battlefield.permanents_controlled_by(player.player_id):
+                for trig in card.data.triggered_abilities:
+                    if trig.get("trigger") != "upkeep":
+                        continue
                     ctrl = self.get_player(card.controller_id)
-                    if ctrl and (trig.get("each_player") or card.controller_id == active.player_id):
-                        effect = trig.get("effect")
-                        if effect:
-                            effect(card, self, ctrl)
+                    if not ctrl:
+                        continue
+                    if not trig.get("each_player") and card.controller_id != active.player_id:
+                        continue
+                    effect = trig.get("effect")
+                    if effect:
+                        self._queue_trigger(card, ctrl, effect, "upkeep")
 
     def _fire_end_step_triggers(self, active: Player):
-        """Fire 'at the beginning of the end step' triggered abilities."""
-        for card in self.battlefield.cards():
-            for trig in card.data.triggered_abilities:
-                if trig.get("trigger") == "end_step":
+        """
+        Queue 'at the beginning of end step' triggers onto the stack (APNAP order),
+        then give priority.
+        """
+        player_order = [active] + self.opponents_of(active.player_id)
+        for player in player_order:
+            for card in self.battlefield.permanents_controlled_by(player.player_id):
+                for trig in card.data.triggered_abilities:
+                    if trig.get("trigger") != "end_step":
+                        continue
                     ctrl = self.get_player(card.controller_id)
-                    if ctrl and (trig.get("each_player") or card.controller_id == active.player_id):
-                        effect = trig.get("effect")
-                        if effect:
-                            effect(card, self, ctrl)
+                    if not ctrl:
+                        continue
+                    if not trig.get("each_player") and card.controller_id != active.player_id:
+                        continue
+                    effect = trig.get("effect")
+                    if effect:
+                        self._queue_trigger(card, ctrl, effect, "end_step")
 
     # ------------------------------------------------------------------
     # Win condition checks

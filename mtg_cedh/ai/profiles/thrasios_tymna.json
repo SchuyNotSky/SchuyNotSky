@@ -79,5 +79,23 @@
     "ad_nauseam_stop": 5,
     "shock_land_pay": 4,
     "necropotence_draw_to": 15
+  },
+
+  "priority_policy": {
+    "_comment": "Tight control combo — low thresholds, counter aggressively, hold up protection",
+    "counter_hard_threshold": 65,
+    "counter_free_threshold": 45,
+    "always_respond_to": [
+      "Thassa's Oracle",
+      "Demonic Consultation",
+      "Tainted Pact",
+      "Ad Nauseam",
+      "Flash",
+      "Underworld Breach",
+      "Thassa's Oracle trigger (etb)"
+    ],
+    "never_counter": [],
+    "hold_up_mana_end_step": true,
+    "pass_on_mana_positive": false
   }
 }
